@@ -1,5 +1,6 @@
 <?php
 
+// File: app/Models/Borrow.php
 namespace App\Models;
 
 use App\Enums\BorrowStatus;
@@ -11,40 +12,58 @@ class Borrow extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'book_id',
-        'date_borrowed',
-        'date_return',
-        'status', // 'status' can be 'dipinjam' (borrowed) or 'dikembalikan' (returned)
+        'user_id', 'book_id', 'date_borrowed', 
+        'date_returned', 'status'
     ];
 
-    protected $casts = [
-        'date_borrowed' => 'datetime',
-        'date_returned_should_be' => 'datetime',
-        'date_returned_actual' => 'datetime',
-    ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'status' => BorrowStatus::class, /
+            'date_borrowed' => 'datetime',
+            'date_returned' => 'datetime',
         ];
     }
 
-    // RELASI: Satu record peminjaman dimiliki oleh satu User
+    // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // RELASI: Satu record peminjaman merujuk pada satu Buku
     public function book()
     {
         return $this->belongsTo(Book::class);
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', BorrowStatus::Borrowed);
+    }
+
+    public function scopeOverdue($query)
+    {
+        return $query->where('status', BorrowStatus::Borrowed)
+                    ->where('date_returned', '<', now());
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', BorrowStatus::Returned);
+    }
+
+    // Accessors
+    public function getIsOverdueAttribute()
+    {
+        return $this->status === BorrowStatus::Borrowed && $this->date_returned < now();
+    }
+
+    public function getDaysRemainingAttribute()
+    {
+        if ($this->status !== BorrowStatus::Borrowed) {
+            return 0;
+        }
+        
+        return max(0, now()->diffInDays($this->date_returned, false));
     }
 }
