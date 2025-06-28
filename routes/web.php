@@ -22,6 +22,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Route::middleware(['auth', 'verified'])->group(function () {
+//     Route::get('/dashboard', [userDashboard::class, 'dashboard'])->name('dashboard');
+// });
+
 require __DIR__ . '/auth.php';
 
 // Public Routes

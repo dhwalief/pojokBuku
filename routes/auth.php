@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -57,7 +58,16 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
     
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // Route::get('/dashboard', function () {
+    //     return view('dashboard');
+    // })->name('dashboard');
+    Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
+
+
+// Gunakan grup untuk rute-rute dashboard lainnya yang lebih spesifik
+Route::middleware('auth')->prefix('dashboard')->name('dashboard.')->group(function () {
+    // Contoh rute lain di masa depan
+    // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
+    // Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
 });

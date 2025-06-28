@@ -8,6 +8,7 @@ use App\Models\Book;
 use App\Models\Borrow;
 use App\Models\Category;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,6 +20,10 @@ class DashboardController extends Controller
 
         if ($user->role === UserRole::Admin) {
             return $this->adminDashboard();
+        }
+
+        if ($user->role === UserRole::User) {
+            return $this->userDashboard();
         }
 
         return $this->userDashboard();
@@ -59,16 +64,18 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        $active_borrows = Borrow::with('book')
-            ->where('user_id', $user->id)
-            ->where('status', 'Dipinjam')
-            ->get();
+        // $active_borrows = Borrow::with('book')
+        //     ->where('user_id', $user->id)
+        //     ->where('status', 'Dipinjam')
+        //     ->get();
 
-        $borrow_history = Borrow::with('book')
-            ->where('user_id', $user->id)
-            ->latest()
-            ->take(5)
-            ->get();
+        // $borrow_history = Borrow::with('book')
+        //     ->where('user_id', $user->id)
+        //     ->latest()
+        //     ->take(5)
+        //     ->get();
+
+        // +++++++++++++++++++++++++++++
 
         // $recommended_books = Book::with(['category'])
         //     ->whereNotIn('id', $user->borrows()->pluck('book_id'))
@@ -76,6 +83,44 @@ class DashboardController extends Controller
         //     ->take(6)
         //     ->get();
 
-        return view('user.dashboard', compact('active_borrows', 'borrow_history'));
+        $totalBooksRead = Borrow::where('user_id', $user->id)->count();
+        
+        // Buku yang sedang dipinjam (status 'Dipinjam')
+        $currentlyBorrowed = Borrow::where('user_id', $user->id)
+            ->where('status', 'Dipinjam')
+            ->count();
+        
+        // Total hari membaca (menghitung durasi semua peminjaman)
+        $totalReadingDays = Borrow::where('user_id', $user->id)
+            ->get()
+            ->sum(function ($borrow) {
+                $borrowed = Carbon::parse($borrow->date_borrowed);
+                $returned = Carbon::parse($borrow->date_returned);
+                return $borrowed->diffInDays($returned);
+            });
+        
+        // Buku yang sedang dipinjam dengan detail
+        $currentBorrows = Borrow::with(['book', 'book.category'])
+            ->where('user_id', $user->id)
+            ->where('status', 'Dipinjam')
+            ->orderBy('date_borrowed', 'desc')
+            ->get();
+        
+        // Riwayat peminjaman terbaru (5 terakhir)
+        $recentBorrows = Borrow::with(['book', 'book.category'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // return view('user.dashboard', compact('active_borrows', 'borrow_history'));
+        
+        return view('user.dashboard.index', compact(
+            'totalBooksRead',
+            'currentlyBorrowed', 
+            'totalReadingDays',
+            'currentBorrows',
+            'recentBorrows'
+        ));
     }
 }

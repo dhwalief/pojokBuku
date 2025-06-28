@@ -13,22 +13,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        // Create an admin user
-        // This is a simple way to create an admin user for testing purposes.
+        // !! Create an admin and regular user, run only once for testing purposes !!
+        //  This is a simple way to create an admin user for testing purposes.
         // In a real application, you might want to use a more secure method for creating admin users,
-        // such as a registration form with proper validation and security measures.
+        // such as a registration form with proper validation and security measures
         User::create([
             'name' => 'Admin',
             'email' => 'admin@localhost',
             'password' => bcrypt('admin'),
             'role' => 'admin',
+        ]);
+
+        // Create a regular user
+        User::create([
+            'name' => 'User',
+            'email' => 'user@localhost',
+            'password' => bcrypt('user'),
+            'role' => 'user',
         ]);
     }
 }

@@ -25,7 +25,7 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%");
+                ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 

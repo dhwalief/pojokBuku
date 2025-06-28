@@ -123,8 +123,18 @@
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</p>
                                 </div>
                                 <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Profil</a>
+                                {{-- Cek jika role pengguna adalah 'admin' --}}
                                 @if(Auth::user()->role === 'admin')
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Dashboard Admin</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    Dashboard Admin
+                                </a>
+
+                                {{-- Jika bukan admin, cek apakah rolenya 'user' --}}
+                                @elseif(Auth::user()->role === 'user')
+                                {{-- Perhatikan sintaks route() yang sudah diperbaiki --}}
+                                <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    Dashboard
+                                </a>
                                 @endif
                                 <hr class="my-1 border-gray-200 dark:border-gray-700">
                                 <form method="POST" action="{{ route('logout') }}">
