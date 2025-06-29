@@ -1,3 +1,7 @@
+@php
+$user = Auth::user();
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="themeSwitcher()" :class="{ 'dark': isDark }">
 
@@ -104,6 +108,9 @@
                         </button>
 
                         @auth
+                        {{-- Debug role - HAPUS SETELAH TESTING --}}
+                        {{-- <pre>{{ Auth::user()->role }}</pre> --}}
+
                         <!-- Profile Dropdown -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open"
@@ -118,28 +125,50 @@
                             </button>
 
                             <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
+                                <!-- User Info -->
                                 <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                                     <p class="text-sm font-medium text-gray-900 dark:text-white">{{ Auth::user()->name }}</p>
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</p>
                                 </div>
-                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Profil</a>
-                                {{-- Cek jika role pengguna adalah 'admin' --}}
-                                @if(Auth::user()->role === 'admin')
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                    Dashboard Admin
+
+                                <!-- Profile Link -->
+                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    Profil
                                 </a>
 
-                                {{-- Jika bukan admin, cek apakah rolenya 'user' --}}
-                                @elseif(Auth::user()->role === 'user')
-                                {{-- Perhatikan sintaks route() yang sudah diperbaiki --}}
+                                {{-- Dashboard Links berdasarkan role --}}
+                                @if(Auth::user()->role === 'admin')
+                                <a href="{{ route('admin.dashboard') ?? '#' }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                    Dashboard Admin
+                                </a>
+                                @else
+                                {{-- Default untuk user biasa --}}
                                 <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
                                     Dashboard
                                 </a>
                                 @endif
+
+                                <!-- Separator -->
                                 <hr class="my-1 border-gray-200 dark:border-gray-700">
+
+                                <!-- Logout -->
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Keluar</button>
+                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                        <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                        </svg>
+                                        Keluar
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -180,43 +209,6 @@
                 </div>
             </div>
         </nav>
-
-        <!-- Flash Messages -->
-        <!-- @if (session('success'))
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        </div>
-        @endif
-
-        @if (session('error'))
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-        </div>
-        @endif
-
-        @if (session('warning'))
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg" role="alert">
-                <span class="block sm:inline">{{ session('warning') }}</span>
-            </div>
-        </div>
-        @endif
-
-        @if ($errors->any())
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-        @endif -->
 
         @if (session('success') || session('error') || session('warning') || $errors->any())
         <div

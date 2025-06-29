@@ -4,7 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\BorrowStatus;
-use App\Enums\Enums\UserStatus;
+use App\Enums\UserStatus;
 use App\Enums\UserRole;
 use App\Models\Book;
 use App\Models\Borrow;
@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Carbon as SupportCarbon;
 
 class BorrowController extends Controller
 {
@@ -80,16 +81,20 @@ class BorrowController extends Controller
             return back()->with('error', 'Anda sudah meminjam buku ini');
         }
 
+        // add native date handling
+        $dateBorrowed = date('Y-m-d');
+        $dateReturned = date('Y-m-d', strtotime('+7 days'));
+
         // Create borrow record (7 days loan period)
         Borrow::create([
             'user_id' => $user->id,
             'book_id' => $book->id,
-            'date_borrowed' => now(),
-            'date_returned' => now()->addDays(7),
+            'date_borrowed' => $dateBorrowed,
+            'date_returned' => $dateReturned,
             'status' => BorrowStatus::Borrowed
         ]);
 
-        return back()->with('success', 'Buku berhasil dipinjam. Batas pengembalian: ' . now()->addDays(7)->format('d M Y'));
+        return back()->with('success', 'Buku berhasil dipinjam. Batas pengembalian: ' . date('d M Y', strtotime($dateReturned)));
     }
 
     public function return(Borrow $borrow)
@@ -119,17 +124,28 @@ class BorrowController extends Controller
         $this->authorize('admin-only');
 
         $request->validate([
-            'days' => 'required|integer|min:1|max:30'
+            'days' => 'required|integer|min:1|max:30',
         ]);
 
         if ($borrow->status !== BorrowStatus::Borrowed) {
             return back()->with('error', 'Hanya peminjaman aktif yang bisa diperpanjang');
         }
 
+        // Gunakan default jika date_returned kosong/null
+        $dateReturned = $borrow->date_returned ?? date('Y-m-d');
+
+        $timestamp = strtotime($dateReturned);
+        if ($timestamp === false) {
+            return back()->with('error', 'Format tanggal pengembalian tidak valid.');
+        }
+
+        $newDateReturned = date('Y-m-d H:i:s', strtotime("+{$request->days} days", $timestamp));
+
         $borrow->update([
-            'date_returned' => Carbon::parse($borrow->date_returned)->addDays($request->days)
+            'date_returned' => $newDateReturned,
         ]);
 
-        return back()->with('success', 'Masa peminjaman berhasil diperpanjang');
+        return back()->with('success', 'Masa peminjaman berhasil diperpanjang'
+            . '. Hingga ' . date('d M Y', strtotime($newDateReturned)));
     }
 }

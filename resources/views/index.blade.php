@@ -12,20 +12,20 @@
                     📚 PojokBuku
                 </h1>
                 <p class="text-xl md:text-2xl mb-8 opacity-90 animate-fade-in-up animation-delay-200">
-                    Jelajahi ribuan koleksi buku digital terbaik
+                    Jelajahi dan baca ribuan koleksi buku digital terbaik
                 </p>
                 <div class="max-w-2xl mx-auto animate-fade-in-up animation-delay-400">
                     <form action="{{ route('books.search') }}" method="GET" class="relative flex items-center">
                         {{-- Menggunakan kelas dark mode untuk input pencarian --}}
                         <label for="search" class="sr-only">Cari Buku</label>
-                        <input 
-                            type="text" 
-                            name="search" 
-                            placeholder="Cari judul buku, penulis, atau ISBN..." 
+                        <input
+                            type="text"
+                            name="search"
+                            placeholder="Cari judul buku, penulis, atau ISBN..."
                             class="w-full px-6 py-4 text-gray-900 rounded-full border-0 shadow-lg focus:ring-4 focus:ring-blue-300 text-lg dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-400 dark:focus:ring-blue-500/50"
                             value="{{ request('search') }}">
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             class="absolute right-2 top-2 bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors duration-200">
                             🔍 Cari
                         </button>
@@ -64,17 +64,17 @@
         <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8 text-center">Kategori Populer</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             @forelse($categories as $category)
-            <a href="{{ route('books.category', $category->slug) }}" 
-               class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 group">
+            <a href="{{ route('books.category', $category->slug) }}"
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 group">
                 <div class="text-2xl mb-3 group-hover:animate-bounce">
                     {{-- Emojis are fine in dark mode --}}
                     @switch($category->category)
-                        @case('Novel') 📚 @break
-                        @case('Teknologi') 💻 @break
-                        @case('Sejarah') 🏛️ @break
-                        @case('Sains') 🔬 @break
-                        @case('Agama') 🕌 @break
-                        @default 📖
+                    @case('Novel') 📚 @break
+                    @case('Teknologi') 💻 @break
+                    @case('Sejarah') 🏛️ @break
+                    @case('Sains') 🔬 @break
+                    @case('Agama') 🕌 @break
+                    @default 📖
                     @endswitch
                 </div>
                 <div class="font-semibold text-gray-900 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400 transition-colors">
@@ -103,24 +103,24 @@
                 </svg>
             </a>
         </div>
-        
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             @forelse($latestBooks as $book)
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transform hover:scale-105 transition-all duration-300 group">
                 <div class="aspect-[3/4] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
                     @if($book->url_cover)
-                        <img src="{{ $book->url_cover }}" 
-                             alt="{{ $book->title }}" 
-                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                             loading="lazy">
+                    <img src="{{ $book->url_cover }}"
+                        alt="{{ $book->title }}"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy">
                     @else
-                        <div class="w-full h-full flex items-center justify-center text-6xl text-gray-400 dark:text-gray-600">
-                            📖
-                        </div>
+                    <div class="w-full h-full flex items-center justify-center text-6xl text-gray-400 dark:text-gray-600">
+                        📖
+                    </div>
                     @endif
                     <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </div>
-                
+
                 <div class="p-6">
                     <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {{ $book->title }}
@@ -129,24 +129,24 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
                         {{ $book->category->category ?? 'Uncategorized' }} • {{ $book->year_published }}
                     </p>
-                    
+
                     <div class="flex gap-2">
-                        <a href="{{ route('books.show', $book->id) }}" 
-                           class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold">
+                        <a href="{{ route('books.show', $book->id) }}"
+                            class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold">
                             Detail
                         </a>
                         @auth
                         <form action="{{ route('borrows.store') }}" method="POST" class="flex-1">
                             @csrf
                             <input type="hidden" name="book_id" value="{{ $book->id }}">
-                            <button type="submit" 
-                                    class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
+                            <button type="submit"
+                                class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
                                 Pinjam
                             </button>
                         </form>
                         @else
-                        <a href="{{ route('login') }}" 
-                           class="flex-1 bg-gray-600 dark:bg-slate-600 text-white text-center py-2 px-4 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-500 transition-colors duration-200 font-semibold">
+                        <a href="{{ route('login') }}"
+                            class="flex-1 bg-gray-600 dark:bg-slate-600 text-white text-center py-2 px-4 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-500 transition-colors duration-200 font-semibold">
                             Login
                         </a>
                         @endauth
@@ -170,12 +170,12 @@
             <h2 class="text-3xl font-bold mb-4">Bergabunglah dengan Komunitas Pembaca</h2>
             <p class="text-xl mb-8 opacity-90">Daftar sekarang dan nikmati akses ke ribuan buku digital</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="{{ route('register') }}" 
-                   class="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors duration-200 transform hover:scale-105">
+                <a href="{{ route('register') }}"
+                    class="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors duration-200 transform hover:scale-105">
                     Daftar Gratis
                 </a>
-                <a href="{{ route('login') }}" 
-                   class="border-2 border-white text-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-blue-600 transition-all duration-200 transform hover:scale-105">
+                <a href="{{ route('login') }}"
+                    class="border-2 border-white text-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-blue-600 transition-all duration-200 transform hover:scale-105">
                     Masuk
                 </a>
             </div>
@@ -185,34 +185,35 @@
 </div>
 
 <style>
-@keyframes fade-in-up {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out forwards;
     }
-}
 
-.animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out forwards;
-}
+    .animation-delay-200 {
+        animation-delay: 0.2s;
+    }
 
-.animation-delay-200 {
-    animation-delay: 0.2s;
-}
+    .animation-delay-400 {
+        animation-delay: 0.4s;
+    }
 
-.animation-delay-400 {
-    animation-delay: 0.4s;
-}
-
-.line-clamp-2 {
-    display: -webkit-box;
-    -line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
+    .line-clamp-2 {
+        display: -webkit-box;
+        -line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 </style>
 @endsection

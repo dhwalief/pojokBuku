@@ -8,8 +8,10 @@ use App\Models\Book;
 use App\Models\Borrow;
 use App\Models\Category;
 use App\Models\User;
-use Carbon\Carbon;
+use DateTime;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -47,12 +49,16 @@ class DashboardController extends Controller
         //     ->get();
 
         // return view('admin.dashboard', compact('stats', 'recent_borrows'));
+
+        $month = date('m');
+
         return view('admin.dashboard.index', [
             'totalBooks' => Book::count(),
             'totalUsers' => User::where('role', 'user')->count(),
             'activeBorrows' => Borrow::where('status', 'Dipinjam')->count(),
             'totalCategories' => Category::count(),
-            'booksThisMonth' => Book::whereMonth('created_at', now()->month)->count(),
+            // debugging karena error parse carbon di windows (di Linux tidak error)
+            'booksThisMonth' => Book::whereMonth('created_at', [$month])->count(),
             'activeUsers' => User::where('status', 'active')->count(),
             'todayBorrows' => Borrow::whereDate('created_at', today())->count(),
             'recentBorrows' => Borrow::with(['user', 'book'])->latest()->take(5)->get(),
@@ -84,28 +90,35 @@ class DashboardController extends Controller
         //     ->get();
 
         $totalBooksRead = Borrow::where('user_id', $user->id)->count();
-        
+
         // Buku yang sedang dipinjam (status 'Dipinjam')
         $currentlyBorrowed = Borrow::where('user_id', $user->id)
             ->where('status', 'Dipinjam')
             ->count();
-        
+
         // Total hari membaca (menghitung durasi semua peminjaman)
+        // menggunakan native DateTime untuk menghitung selisih hari 
         $totalReadingDays = Borrow::where('user_id', $user->id)
             ->get()
             ->sum(function ($borrow) {
-                $borrowed = Carbon::parse($borrow->date_borrowed);
-                $returned = Carbon::parse($borrow->date_returned);
-                return $borrowed->diffInDays($returned);
+                try {
+                    $borrowed = new DateTime($borrow->date_borrowed);
+                    $returned = $borrow->date_returned
+                        ? new DateTime($borrow->date_returned)
+                        : new DateTime(); // default ke sekarang jika belum dikembalikan
+                    return $borrowed->diff($returned)->days;
+                } catch (Exception $e) {
+                    return 0;
+                }
             });
-        
+
         // Buku yang sedang dipinjam dengan detail
         $currentBorrows = Borrow::with(['book', 'book.category'])
             ->where('user_id', $user->id)
             ->where('status', 'Dipinjam')
             ->orderBy('date_borrowed', 'desc')
             ->get();
-        
+
         // Riwayat peminjaman terbaru (5 terakhir)
         $recentBorrows = Borrow::with(['book', 'book.category'])
             ->where('user_id', $user->id)
@@ -114,10 +127,10 @@ class DashboardController extends Controller
             ->get();
 
         // return view('user.dashboard', compact('active_borrows', 'borrow_history'));
-        
+
         return view('user.dashboard.index', compact(
             'totalBooksRead',
-            'currentlyBorrowed', 
+            'currentlyBorrowed',
             'totalReadingDays',
             'currentBorrows',
             'recentBorrows'

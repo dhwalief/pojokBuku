@@ -3,8 +3,10 @@
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BorrowController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use App\Models\Category;
 use Illuminate\Support\Facades\Route;
 
@@ -50,3 +52,21 @@ Route::patch('/borrows/{borrow}/return', [BorrowController::class, 'return'])->n
 
 // Authentication Routes (Laravel Breeze)
 require __DIR__ . '/auth.php';
+
+// Admin Routes
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('books', BookController::class)->except(['show']);
+    Route::resource('categories', CategoryController::class)->except(['show']);
+    Route::resource('borrows', BorrowController::class)->except(['show']);
+    Route::get('borrows/{borrow}/edit', [BorrowController::class, 'edit'])->name('borrows.edit');
+    Route::patch('borrows/{borrow}/update', [BorrowController::class, 'update'])->name('borrows.update');
+    
+    // User Management Routes
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show'); // Route yang ditambahkan
+    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::patch('users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.updateStatus'); // Tambahkan juga route ini jika belum ada
+    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+});

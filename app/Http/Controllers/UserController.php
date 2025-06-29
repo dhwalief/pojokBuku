@@ -1,10 +1,10 @@
 <?php
 
 // ==================== USER CONTROLLER ====================
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
 use App\Enums\BorrowStatus;
-use App\Enums\Enums\UserStatus;
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -23,9 +23,9 @@ class UserController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                ->orWhere('email', 'LIKE', "%{$search}%");
+                    ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 
@@ -33,8 +33,9 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        $users = $query->withCount(['borrows' => function($q) {
-            $q->where('status', BorrowStatus::Borrowed);
+
+        $users = $query->withCount(['borrows' => function ($q) {
+            $q->where('status', \App\Enums\BorrowStatus::Borrowed);
         }])->paginate(15);
 
         return view('admin.users.index', compact('users'));
@@ -42,7 +43,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
-        $user->load(['borrows' => function($q) {
+        $user->load(['borrows' => function ($q) {
             $q->with('book')->latest();
         }]);
 
@@ -57,8 +58,8 @@ class UserController extends Controller
 
         $user->update(['status' => $request->status]);
 
-        $message = $request->status === UserStatus::Suspend 
-            ? 'User berhasil di-suspend' 
+        $message = $request->status === \App\Enums\UserStatus::Suspend->value
+            ? 'User berhasil di-suspend'
             : 'User berhasil diaktifkan';
 
         return back()->with('success', $message);

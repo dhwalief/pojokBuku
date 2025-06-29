@@ -64,6 +64,6 @@ class Borrow extends Model
             return 0;
         }
         
-        return max(0, now()->diffInDays($this->date_returned, false));
+        return max(0, $this->date_returned->diffInDays(now(), false));
     }
 }

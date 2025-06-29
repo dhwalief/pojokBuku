@@ -3,7 +3,7 @@
 // File: app/Models/User.php
 namespace App\Models;
 
-use App\Enums\Enums\UserStatus;
+use App\Enums\UserStatus;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
