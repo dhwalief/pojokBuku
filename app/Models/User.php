@@ -4,6 +4,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Models\Borrow;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -36,7 +37,12 @@ class User extends Authenticatable
         ];
     }
 
-    // Relationships
+
+    /**
+     * Get the borrows for the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function borrows()
     {
         return $this->hasMany(Borrow::class);

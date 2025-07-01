@@ -15,10 +15,15 @@ class Book extends Model
         'year_published', 'url_cover'
     ];
 
-    // Relationships
-    public function category()
+    /**
+     * Perubahan: Relasi diubah dari belongsTo menjadi belongsToMany.
+     * Nama method diubah dari category() menjadi categories() untuk merefleksikan
+     * bahwa satu buku bisa memiliki BANYAK kategori.
+     */
+    public function categories()
     {
-        return $this->belongsTo(Category::class);
+        // Laravel akan mencari tabel pivot 'book_category' secara otomatis
+        return $this->belongsToMany(Category::class, 'book_category');
     }
 
     public function booksFile()

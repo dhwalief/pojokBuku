@@ -34,13 +34,17 @@
                         </div>
 
                         <div>
-                            <label for="category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kategori <span class="text-red-500">*</span></label>
-                            <select id="category_id" name="category_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                <option value="" disabled selected>Pilih Kategori</option>
+                            <label for="category_ids" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kategori (bisa pilih lebih dari satu) <span class="text-red-500">*</span></label>
+
+                            <select id="category_ids" name="category_ids[]" required multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                {{-- <option value="" disabled>Pilih Kategori</option> --}}
                                 @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->category }}</option>
+                                <option value="{{ $category->id }}" {{ (is_array(old('category_ids')) && in_array($category->id, old('category_ids'))) ? 'selected' : '' }}>
+                                    {{ $category->category }}
+                                </option>
                                 @endforeach
                             </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Tahan Ctrl (atau Cmd di Mac) untuk memilih lebih dari satu.</p>
                         </div>
 
                         <div>
@@ -50,7 +54,7 @@
                     </div>
 
                     <div class="space-y-6" x-data="{ coverUrl: '{{ old('url_cover', '') }}', fileName: '' }">
-                         <div>
+                        <div>
                             <label for="isbn" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ISBN</label>
                             <input type="text" name="isbn" id="isbn" value="{{ old('isbn') }}" class="mt-1 block w-full border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         </div>
@@ -64,12 +68,12 @@
                             <label for="language" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bahasa</label>
                             <input type="text" name="language" id="language" value="{{ old('language') }}" class="mt-1 block w-full border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         </div>
-                        
+
                         <div>
                             <label for="year_published" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun Terbit</label>
                             <input type="number" name="year_published" id="year_published" value="{{ old('year_published') }}" min="1000" max="{{ date('Y') }}" class="mt-1 block w-full border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         </div>
-                        
+
                         <div>
                             <label for="url_cover" class="block text-sm font-medium text-gray-700 dark:text-gray-300">URL Gambar Sampul</label>
                             <input type="url" name="url_cover" id="url_cover" x-model="coverUrl" class="mt-1 block w-full border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="https://example.com/cover.jpg">
@@ -80,7 +84,7 @@
                                 </div>
                             </template>
                         </div>
-                        
+
                         <div>
                             <label for="book_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">File Buku (PDF) <span class="text-red-500">*</span></label>
                             <input type="file" name="book_file" id="book_file" required class="hidden" @change="fileName = $event.target.files[0].name">
@@ -101,8 +105,8 @@
 
                 </div>
                 <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex justify-end items-center space-x-4">
-                     <a href="{{ route('admin.books.index') }}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Batal</a>
-                     <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                    <a href="{{ route('admin.books.index') }}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Batal</a>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
                         Simpan Buku
                     </button>
                 </div>
@@ -110,4 +114,17 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<!-- Contoh menggunakan library seperti Tom Select atau Select2 akan membuat UI lebih ramah pengguna --}} -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet"> --}}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script> --}}
+<script>
+    new TomSelect('#category_ids', {
+        plugins: ['remove_button'],
+        create: false,
+    });
+</script>
+@endpush
+
 @endsection

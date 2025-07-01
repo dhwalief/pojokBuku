@@ -8,21 +8,27 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Perubahan:
+     * 1. Mengganti nama kolom `date_return` menjadi `due_date` untuk kejelasan.
+     * Ini adalah kolom untuk BATAS WAKTU pengembalian.
+     * 2. Menambahkan kolom `returned_at` (nullable) untuk mencatat KAPAN buku
+     * benar-benar dikembalikan. Kolom ini akan kosong selama buku masih dipinjam.
      */
     public function up(): void
     {
         Schema::create('borrows', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            
-            $table->unsignedBigInteger('book_id');
-            $table->foreign('book_id')->references('id')->on('books')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('book_id')->constrained('books')->onDelete('cascade');
 
-            $table->timestamp('date_borrowed')->nullable(false)->comment('Date when the book was borrowed');
-            $table->timestamp('date_return')->nullable(false)->comment('Due date for returning the book');
-            $table->string('status', 50)->default('dipinjam')->comment('Status of the borrow: dipinjam, dikembalikan');
+            $table->timestamp('date_borrowed')->comment('Tanggal saat buku dipinjam');
+            $table->timestamp('due_date')->comment('Batas waktu pengembalian buku');
+            $table->timestamp('returned_at')->nullable()->comment('Tanggal aktual buku dikembalikan');
+            
+            $table->string('status', 50)->default('dipinjam')->comment('Status: dipinjam, dikembalikan');
+            
             $table->timestamps();
         });
     }

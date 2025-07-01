@@ -1,6 +1,5 @@
 <?php
 
-// ==================== BORROW CONTROLLER ====================
 namespace App\Http\Controllers;
 
 use App\Enums\BorrowStatus;
@@ -8,144 +7,140 @@ use App\Enums\UserStatus;
 use App\Enums\UserRole;
 use App\Models\Book;
 use App\Models\Borrow;
-use Carbon\Carbon;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Support\Carbon as SupportCarbon;
 
 class BorrowController extends Controller
 {
     use AuthorizesRequests;
+
     public function index()
     {
-        // $user = Auth::user();
+        $user = Auth::user();
 
-        // if ($user->role === 'admin') {
-        //     $borrows = Borrow::with(['user', 'book'])
-        //         ->latest()
-        //         ->paginate(15);
-        //     return view('admin.borrows.index', compact('borrows'));
-        // }
+        // Menggunakan Query Builder untuk efisiensi
+        $borrowsQuery = Borrow::query();
 
-        // $borrows = Borrow::with('book')
-        //     ->where('user_id', $user->id)
-        //     ->latest()
-        //     ->paginate(10);
+        // Jika user adalah admin, tampilkan semua data peminjaman
+        // Jika bukan, hanya tampilkan data milik user yang sedang login
+        if ($user->role === UserRole::Admin) {
+            $borrowsQuery->with(['user', 'book']); // Eager load relasi user dan book
+        } else {
+            $borrowsQuery->where('user_id', $user->id)->with('book'); // Hanya load relasi book
+        }
 
-        // return view('user.borrows.index', compact('borrows'));
-        $borrows = Auth::user()->borrows
-            ->with(['book.category'])
-            ->when(request('search'), function ($query) {
-                $query->whereHas('book', function ($q) {
-                    $q->where('title', 'like', '%' . request('search') . '%')
-                        ->orWhere('author', 'like', '%' . request('search') . '%');
-                });
-            })
-            ->when(request('status'), function ($query) {
-                $query->where('status', request('status'));
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        return view('user.borrows.index', compact('borrows'));
+        // Terapkan filter pencarian jika ada
+        $borrowsQuery->when(request('search'), function ($query) {
+            $query->whereHas('book', function ($q) {
+                $q->where('title', 'like', '%' . request('search') . '%')
+                    ->orWhere('author', 'like', '%' . request('search') . '%');
+            });
+        });
+
+        // Terapkan filter status jika ada
+        $borrowsQuery->when(request('status'), function ($query) {
+            $query->where('status', request('status'));
+        });
+
+        // Urutkan berdasarkan data terbaru dan lakukan paginasi
+        $borrows = $borrowsQuery->latest()->paginate(10);
+        
+        // Tentukan view berdasarkan role user
+        $view = $user->role === UserRole::Admin ? 'admin.borrows.index' : 'user.borrows.index';
+
+        return view($view, compact('borrows'));
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
 
+        // Validasi input book_id
+        $request->validate([
+            'book_id' => 'required|exists:books,id',
+        ]);
+
         // Check user status
-        if ($user->status !== UserStatus::Suspend) {
-            return back()->with('error', 'Akun Anda sedang di-suspend');
+        if ($user->status == UserStatus::Suspend) {
+            return back()->with('error', 'Akun Anda sedang di-suspend dan tidak bisa meminjam buku.');
         }
 
-        // Check if user already has 3 active borrows
-        $activeBorrows = $user->borrows
-            ->where('status', 'dipinjam')
+        // Gunakan query langsung untuk menghitung peminjaman aktif
+        $activeBorrowsCount = Borrow::where('user_id', $user->id)
+            ->where('status', BorrowStatus::Borrowed)
             ->count();
 
-        if ($activeBorrows >= 3) {
-            return back()->with('error', 'Anda sudah meminjam 3 buku. Kembalikan salah satu untuk meminjam lagi.');
+        if ($activeBorrowsCount >= 3) {
+            return back()->with('error', 'Anda sudah mencapai batas maksimal 3 buku yang dipinjam. Kembalikan salah satu untuk meminjam lagi.');
         }
 
         $book = Book::findOrFail($request->book_id);
 
-        // Check if user already borrowed this book
-        $existingBorrow = $user->borrows
+        // Gunakan query langsung untuk cek peminjaman yang sudah ada
+        $existingBorrow = Borrow::where('user_id', $user->id)
             ->where('book_id', $book->id)
             ->where('status', BorrowStatus::Borrowed)
             ->exists();
 
         if ($existingBorrow) {
-            return back()->with('error', 'Anda sudah meminjam buku ini');
+            return back()->with('error', 'Anda sudah meminjam buku ini dan belum dikembalikan.');
         }
 
-        // add native date handling
-        $dateBorrowed = date('Y-m-d');
-        $dateReturned = date('Y-m-d', strtotime('+7 days'));
+        // Sesuaikan dengan struktur model baru: due_date dan returned_at
+        $dateBorrowed = now();
+        $dueDate = now()->addDays(7); // Batas waktu pengembalian
 
-        // Create borrow record (7 days loan period)
+        // Create borrow record dengan field yang sesuai model
         Borrow::create([
             'user_id' => $user->id,
             'book_id' => $book->id,
             'date_borrowed' => $dateBorrowed,
-            'date_returned' => $dateReturned,
+            'due_date' => $dueDate, // Menggunakan due_date bukan date_returned
+            'returned_at' => null, // Belum dikembalikan
             'status' => BorrowStatus::Borrowed
         ]);
 
-        return back()->with('success', 'Buku berhasil dipinjam. Batas pengembalian: ' . date('d M Y', strtotime($dateReturned)));
+        return back()->with('success', 'Buku berhasil dipinjam. Batas pengembalian: ' . $dueDate->format('d M Y'));
     }
 
     public function return(Borrow $borrow)
     {
-        $user = Auth::user();
-
-        // Check ownership or admin
-        if ($borrow->user_id !== $user->id && $user->role !== UserRole::Admin) {
-            abort(403);
-        }
+        $this->authorize('update', $borrow); // Gunakan Policy untuk otorisasi
 
         if ($borrow->status !== BorrowStatus::Borrowed) {
-            return back()->with('error', 'Buku sudah dikembalikan');
+            return back()->with('error', 'Buku ini sudah dalam status dikembalikan.');
         }
 
+        // Update dengan struktur model baru
         $borrow->update([
             'status' => BorrowStatus::Returned,
-            'date_returned' => now()
+            'returned_at' => now() // Set tanggal kembali aktual
         ]);
 
-        return back()->with('success', 'Buku berhasil dikembalikan');
+        return back()->with('success', 'Buku berhasil dikembalikan. Terima kasih!');
     }
 
-    // Admin only - extend borrow period
     public function extend(Request $request, Borrow $borrow)
     {
-        $this->authorize('admin-only');
+        $this->authorize('admin-only'); // Pastikan hanya admin
 
         $request->validate([
             'days' => 'required|integer|min:1|max:30',
         ]);
 
         if ($borrow->status !== BorrowStatus::Borrowed) {
-            return back()->with('error', 'Hanya peminjaman aktif yang bisa diperpanjang');
+            return back()->with('error', 'Hanya peminjaman yang sedang aktif yang bisa diperpanjang.');
         }
 
-        // Gunakan default jika date_returned kosong/null
-        $dateReturned = $borrow->date_returned ?? date('Y-m-d');
-
-        $timestamp = strtotime($dateReturned);
-        if ($timestamp === false) {
-            return back()->with('error', 'Format tanggal pengembalian tidak valid.');
-        }
-
-        $newDateReturned = date('Y-m-d H:i:s', strtotime("+{$request->days} days", $timestamp));
+        // Gunakan due_date sesuai dengan struktur model baru
+        $newDueDate = $borrow->due_date->addDays($request->days);
 
         $borrow->update([
-            'date_returned' => $newDateReturned,
+            'due_date' => $newDueDate, // Update due_date bukan date_returned
         ]);
 
-        return back()->with('success', 'Masa peminjaman berhasil diperpanjang'
-            . '. Hingga ' . date('d M Y', strtotime($newDateReturned)));
+        return back()->with('success', 'Masa peminjaman berhasil diperpanjang hingga ' . $newDueDate->format('d M Y'));
     }
 }

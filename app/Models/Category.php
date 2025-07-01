@@ -9,15 +9,15 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     use HasFactory;
-
     protected $fillable = ['category', 'slug'];
-
     public $timestamps = false;
 
-    // Relationships
+    /**
+     * Perubahan: Relasi diubah dari hasMany menjadi belongsToMany.
+     */
     public function books()
     {
-        return $this->hasMany(Book::class);
+        return $this->belongsToMany(Book::class, 'book_category');
     }
 
     // Route key binding

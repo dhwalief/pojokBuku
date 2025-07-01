@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -11,6 +12,6 @@ class AdminPolicy
 
     public function adminOnly(User $user)
     {
-        return $user->role === 'admin';
+        return $user->role === UserRole::Admin;
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-// ==================== BOOK CONTROLLER ====================
+// ==================== BOOK CONTROLLER (FIXED) ====================
 namespace App\Http\Controllers;
 
 use App\Enums\BorrowStatus;
@@ -14,14 +14,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class BookController extends Controller
 {
     use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
-    /**
-     * Display a listing of the resource.
-     */
+    // ... (method index dan search tidak perlu diubah) ...
     public function index(Request $request)
     {
         // Data untuk komponen statistik dan fitur di halaman utama
@@ -33,22 +32,24 @@ class BookController extends Controller
         $popularCategories = Category::withCount('books')->orderByDesc('books_count')->take(6)->get();
 
         // Mengambil buku-buku terbaru untuk bagian "Featured Books"
-        $latestBooks = Book::with('category')->latest()->take(4)->get();
+        $latestBooks = Book::with('categories')->latest()->take(4)->get();
 
         // Mengambil SEMUA kategori untuk dropdown filter
         $categories = Category::orderBy('category')->get();
 
         // Query utama untuk daftar buku yang bisa dicari dan difilter
-        $query = Book::with(['category', 'booksFile']);
+        $query = Book::with(['categories', 'booksFile']);
 
         // Terapkan scopeSearch jika ada input pencarian
         if ($request->filled('search')) {
             $query->search($request->search); // Menggunakan scopeSearch dari Model
         }
 
-        // Terapkan filter kategori jika ada
+        // PERUBAHAN: Logika filter kategori diubah menggunakan whereHas untuk relasi Many-to-Many
         if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+            $query->whereHas('categories', function ($q) use ($request) {
+                $q->where('id', $request->category);
+            });
         }
 
         // Terapkan filter tahun jika ada
@@ -71,49 +72,57 @@ class BookController extends Controller
         ));
     }
 
-    /**
-     * Handle the search request from various forms and redirect to the index page.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function search(Request $request)
     {
-        // Validasi input pencarian, pastikan tidak kosong.
-        $request->validate([
-            'search' => 'required|string|max:100',
-        ]);
-
-        // Ambil hanya input 'search' dari request.
+        $request->validate(['search' => 'required|string|max:100']);
         $query = $request->only('search');
-
-        // Redirect ke route 'books.index' dengan query pencarian.
-        // Method index() sudah dirancang untuk menangani filter berdasarkan
-        // parameter 'search', sehingga ini adalah cara yang paling efisien.
         return redirect()->route('books.index', $query);
     }
 
+
+    /**
+     * =================================================================
+     * METHOD YANG DIPERBAIKI ADA DI SINI
+     * =================================================================
+     */
+    /**
+     * Menampilkan detail satu buku.
+     */
     public function show(Book $book)
     {
-        $book->load(['category', 'booksFile']);
+        $book->load(['categories', 'booksFile']);
+        
+        // Inisialisasi variabel peminjaman aktif
+        $activeBorrow = null;
 
-        // Cek apakah user sudah meminjam buku ini
+        // Cek apakah user sudah login
         if (Auth::check()) {
             /** @var User $user */
             $user = Auth::user();
 
-            // FIX: Hapus () setelah $user karena $user adalah objek, bukan method
-            $user_borrowed = $user->borrows()
+            $activeBorrow = $user->borrows()
                 ->where('book_id', $book->id)
                 ->where('status', BorrowStatus::Borrowed)
-                ->exists();
-        } else {
-            $user_borrowed = false; // penggguna belum login atau belum meminjam buku ini
+                ->first(); // Gunakan first() untuk mendapatkan model Borrow
         }
 
-        return view('books.show', compact('book', 'user_borrowed'));
+        // Mengambil buku terkait (logika ini sudah benar)
+        $categoryIds = $book->categories->pluck('id');
+        $relatedBooksQuery = Book::query();
+        if ($categoryIds->isNotEmpty()) {
+            $relatedBooksQuery->whereHas('categories', function ($query) use ($categoryIds) {
+                $query->whereIn('categories.id', $categoryIds);
+            });
+        }
+        $relatedBooks = $relatedBooksQuery->where('id', '!=', $book->id)
+            ->inRandomOrder()
+            ->take(5)
+            ->get();
+
+        return view('books.show', compact('book', 'activeBorrow', 'relatedBooks'));
     }
 
+    // ... (method lainnya tidak perlu diubah) ...
     // ! =====   Admin only methods  ======
 
     public function create()
@@ -130,14 +139,15 @@ class BookController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'category_ids' => 'required|array', // Harus berupa array
+            'category_ids.*' => 'exists:categories,id', // Setiap item dalam array harus ada di tabel categories
             'description' => 'nullable|string',
             'isbn' => 'nullable|string|max:20|unique:books',
             'publisher' => 'nullable|string|max:255',
             'language' => 'nullable|string|max:100',
             'year_published' => 'nullable|integer|min:1000|max:' . date('Y'),
             'url_cover' => 'nullable|url|max:255',
-            'book_file' => 'required|file|mimes:pdf|max:10240', // 10MB max
+            'book_file' => 'required|file|mimes:pdf|max:10240', // 10MB max tidak bisa file !pdf
         ]);
 
         // Handle file upload
@@ -147,19 +157,17 @@ class BookController extends Controller
         $fileHash = hash_file('sha256', $file->getRealPath());
 
         // Create books_file record
-        // FIX: Gunakan uploaded_at sesuai dengan ERD, bukan created_at/updated_at
         $booksFile = BooksFile::create([
             'file_path' => $filePath,
             'file_hash' => $fileHash,
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
-            'uploaded_at' => now(), // Sesuai ERD
+            'uploaded_at' => now(),
         ]);
 
         // Create book record
-        Book::create([
+        $book = Book::create([
             'books_file_id' => $booksFile->id,
-            'category_id' => $validated['category_id'],
             'title' => $validated['title'],
             'author' => $validated['author'],
             'description' => $validated['description'],
@@ -170,6 +178,11 @@ class BookController extends Controller
             'url_cover' => $validated['url_cover'],
         ]);
 
+        //  Gunakan attach() untuk menyimpan relasi many-to-many
+        if (!empty($validated['category_ids'])) {
+            $book->categories()->attach($validated['category_ids']);
+        }
+
         return redirect()->route('admin.books.index')
             ->with('success', 'Buku berhasil ditambahkan');
     }
@@ -178,6 +191,7 @@ class BookController extends Controller
     {
         $this->authorize('admin-only');
         $categories = Category::all();
+        $book->load('categories');
         return view('admin.books.edit', compact('book', 'categories'));
     }
 
@@ -188,7 +202,8 @@ class BookController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id',
             'description' => 'nullable|string',
             'isbn' => 'nullable|string|max:20|unique:books,isbn,' . $book->id,
             'publisher' => 'nullable|string|max:255',
@@ -197,7 +212,15 @@ class BookController extends Controller
             'url_cover' => 'nullable|url|max:255',
         ]);
 
-        $book->update($validated);
+        $bookData = $request->except(['_token', '_method', 'category_ids']);
+        $book->update($bookData);
+
+        // PERUBAHAN: Gunakan sync() untuk update relasi. Sync akan otomatis menghapus relasi lama dan menambah yg baru.
+        if (!empty($validated['category_ids'])) {
+            $book->categories()->sync($validated['category_ids']);
+        } else {
+            $book->categories()->detach(); // Hapus semua kategori jika tidak ada yang dipilih
+        }
 
         return redirect()->route('admin.books.index')
             ->with('success', 'Buku berhasil diupdate');
@@ -207,12 +230,10 @@ class BookController extends Controller
     {
         $this->authorize('admin-only');
 
-        // Check if book is currently borrowed
         if ($book->borrows()->where('status', BorrowStatus::Borrowed)->exists()) {
             return back()->with('error', 'Tidak dapat menghapus buku yang sedang dipinjam');
         }
 
-        // Delete file
         if ($book->booksFile) {
             Storage::disk('private')->delete($book->booksFile->file_path);
             $book->booksFile->delete();
@@ -224,17 +245,14 @@ class BookController extends Controller
             ->with('success', 'Buku berhasil dihapus');
     }
 
-    // Secure PDF viewer - user cannot download
     public function viewPdf(Book $book)
     {
-        // Check if user has active borrow for this book
         if (!Auth::check()) {
             abort(403, 'Anda harus login terlebih dahulu');
         }
-
-        // Check if user has borrowed the book
+        /** @var User $user */
         $user = Auth::user();
-        $hasBorrowedBook = $user->borrows
+        $hasBorrowedBook = $user->borrows()
             ->where('book_id', $book->id)
             ->where('status', BorrowStatus::Borrowed)
             ->exists();
@@ -246,16 +264,15 @@ class BookController extends Controller
         return view('books.pdf-viewer', compact('book'));
     }
 
-    // Stream PDF content (prevent direct download)
     public function streamPdf(Book $book)
     {
-        // Check if user is authenticated and has borrowed the book
         if (!Auth::check()) {
             abort(403);
         }
 
+        /** @var User $user */
         $user = Auth::user();
-        $hasBorrowedBook = $user->borrows
+        $hasBorrowedBook = $user->borrows()
             ->where('book_id', $book->id)
             ->where('status', BorrowStatus::Borrowed)
             ->exists();
@@ -265,21 +282,121 @@ class BookController extends Controller
         }
 
         $filePath = $book->booksFile->file_path;
-
         if (!Storage::disk('private')->exists($filePath)) {
             abort(404);
         }
 
-        return response()->file(
-            Storage::disk('private')->path($filePath),
-            [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $book->title . '.pdf"',
-                'X-Frame-Options' => 'SAMEORIGIN',
-                'Cache-Control' => 'no-cache, no-store, must-revalidate',
-                'Pragma' => 'no-cache',
-                'Expires' => '0'
-            ]
-        );
+        // Dapatkan ukuran file
+        $fileSize = Storage::disk('private')->size($filePath);
+        $fullPath = Storage::disk('private')->path($filePath);
+
+        // Headers untuk PDF streaming yang aman
+        $headers = [
+            'Content-Type' => 'application/pdf',
+            'Content-Length' => $fileSize,
+            'Accept-Ranges' => 'bytes', // Mendukung partial content untuk PDF.js
+
+            // Security headers
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Robots-Tag' => 'noindex, nofollow, noarchive, nosnippet, notranslate',
+
+            // Strict caching policy
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Thu, 01 Jan 1970 00:00:00 GMT',
+
+            // CSP untuk PDF.js
+            'Content-Security-Policy' => implode('; ', [
+                "default-src 'self'",
+                "script-src 'self' https://cdnjs.cloudflare.com 'unsafe-eval'",
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: blob:",
+                "font-src 'self' data:",
+                "connect-src 'self'",
+                "object-src 'none'", // Blokir object tag
+                "frame-src 'none'",
+                "form-action 'none'",
+                "base-uri 'self'"
+            ]),
+
+            // Additional security
+            'Referrer-Policy' => 'no-referrer',
+            'X-Download-Options' => 'noopen',
+            'X-Permitted-Cross-Domain-Policies' => 'none',
+
+            // Tracking headers
+            'X-Book-ID' => $book->id,
+            'X-User-ID' => $user->id,
+            'X-Access-Time' => now()->toISOString(),
+        ];
+
+        // Handle range requests untuk PDF.js
+        $rangeHeader = request()->header('Range');
+        if ($rangeHeader) {
+            return $this->handleRangeRequest($fullPath, $fileSize, $rangeHeader, $headers);
+        }
+
+        // Log akses
+        Log::info('PDF accessed', [
+            'book_id' => $book->id,
+            'book_title' => $book->title,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'timestamp' => now(),
+        ]);
+
+        // Stream full file
+        return response()->stream(function () use ($fullPath) {
+            $stream = fopen($fullPath, 'rb');
+            while (!feof($stream)) {
+                echo fread($stream, 8192);
+                flush();
+            }
+            fclose($stream);
+        }, 200, $headers);
+    }
+
+    /**
+     * Handle range requests untuk PDF.js streaming
+     */
+    private function handleRangeRequest($filePath, $fileSize, $rangeHeader, $baseHeaders)
+    {
+        // Parse range header
+        if (!preg_match('/bytes=(\d+)-(\d*)/', $rangeHeader, $matches)) {
+            abort(416, 'Invalid range');
+        }
+
+        $start = intval($matches[1]);
+        $end = $matches[2] ? intval($matches[2]) : $fileSize - 1;
+
+        // Validate range
+        if ($start > $end || $start >= $fileSize || $end >= $fileSize) {
+            abort(416, 'Invalid range');
+        }
+
+        $length = $end - $start + 1;
+
+        // Range headers
+        $headers = array_merge($baseHeaders, [
+            'Content-Length' => $length,
+            'Content-Range' => "bytes $start-$end/$fileSize",
+        ]);
+
+        return response()->stream(function () use ($filePath, $start, $length) {
+            $stream = fopen($filePath, 'rb');
+            fseek($stream, $start);
+
+            $remaining = $length;
+            while ($remaining > 0 && !feof($stream)) {
+                $chunkSize = min(8192, $remaining);
+                echo fread($stream, $chunkSize);
+                $remaining -= $chunkSize;
+                flush();
+            }
+            fclose($stream);
+        }, 206, $headers); // 206 Partial Content
     }
 }

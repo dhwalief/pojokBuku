@@ -11,24 +11,27 @@ use App\Models\Borrow;
 class HomeController extends Controller
 {
     /**
-     * Show the application homepage.
+     * Menampilkan halaman utama aplikasi.
      */
     public function index()
     {
-        // Get statistics
+        // Mengambil data statistik
         $totalBooks = Book::count();
         $totalUsers = User::where('role', 'user')->count();
         $totalBorrows = Borrow::count();
 
-        // Get categories with book count
+        // Mengambil kategori beserta jumlah bukunya
         $categories = Category::withCount('books')
             ->orderBy('books_count', 'desc')
             ->take(6)
             ->get();
 
-        // Get latest books (limit 8)
-        $latestBooks = Book::with(['category', 'booksFile'])
-            ->orderBy('created_at', 'desc')
+        // =================================================================
+        // PERBAIKAN 1: Mengubah 'category' menjadi 'categories'
+        // =================================================================
+        // Mengambil buku-buku terbaru (limit 8)
+        $latestBooks = Book::with(['categories', 'booksFile']) // <-- FIX
+            ->latest() // Menggunakan latest() lebih ringkas dari orderBy('created_at', 'desc')
             ->take(8)
             ->get();
 
@@ -42,7 +45,9 @@ class HomeController extends Controller
     }
 
     /**
-     * Search books
+     * Menampilkan halaman hasil pencarian buku.
+     * Method ini tidak lagi digunakan karena pencarian di-handle oleh BookController@index.
+     * Namun, jika Anda masih ingin menggunakannya, ini adalah versi yang diperbaiki.
      */
     public function search(Request $request)
     {
@@ -51,9 +56,12 @@ class HomeController extends Controller
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
 
-        $query = Book::with(['category', 'booksFile']);
+        // =================================================================
+        // PERBAIKAN 2: Mengubah 'category' menjadi 'categories'
+        // =================================================================
+        $query = Book::with(['categories', 'booksFile']); // <-- FIX
 
-        // Apply search filter
+        // Terapkan filter pencarian
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
@@ -64,12 +72,17 @@ class HomeController extends Controller
             });
         }
 
-        // Apply category filter
+        // =================================================================
+        // PERBAIKAN 3: Menggunakan whereHas untuk filter relasi Many-to-Many
+        // =================================================================
+        // Terapkan filter kategori
         if ($categoryId) {
-            $query->where('category_id', $categoryId);
+            $query->whereHas('categories', function ($q) use ($categoryId) { // <-- FIX
+                $q->where('categories.id', $categoryId);
+            });
         }
 
-        // Apply sorting
+        // Terapkan sorting
         $query->orderBy($sortBy, $sortOrder);
 
         $books = $query->paginate(12)->withQueryString();
@@ -79,15 +92,20 @@ class HomeController extends Controller
     }
 
     /**
-     * Show books by category
+     * Menampilkan buku berdasarkan kategori.
      */
     public function booksByCategory($slug)
     {
         $category = Category::where('slug', $slug)->firstOrFail();
 
-        $books = Book::with(['category', 'booksFile'])
-            ->where('category_id', $category->id)
-            ->orderBy('created_at', 'desc')
+        // =================================================================
+        // PERBAIKAN 4: Menggunakan whereHas dan memuat relasi 'categories'
+        // =================================================================
+        $books = Book::with(['categories', 'booksFile']) // <-- FIX
+            ->whereHas('categories', function ($q) use ($category) { // <-- FIX
+                $q->where('slug', $category->slug);
+            })
+            ->latest()
             ->paginate(12);
 
         return view('books.category', compact('books', 'category'));
