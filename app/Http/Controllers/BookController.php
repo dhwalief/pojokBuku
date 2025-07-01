@@ -56,6 +56,11 @@ class BookController extends Controller
         if ($request->filled('year')) {
             $query->where('year_published', $request->year);
         }
+        
+        $user = Auth::user();
+        if (Auth::guest() || (Auth::check() && $user->role !== UserRole::Admin)) {
+            $query->where('is_hidden', false);
+        }
 
         // Ambil data utama buku dengan paginasi
         $books = $query->latest()->paginate(12)->withQueryString();
@@ -89,7 +94,15 @@ class BookController extends Controller
      * Menampilkan detail satu buku.
      */
     public function show(Book $book)
-    {
+    {   
+        /** @var User $user */
+        $user = Auth::user();
+        
+        // Jika buku disembunyikan dan user bukan admin, tampilkan 404 Not Found.
+        if ($book->is_hidden && (Auth::guest() || $user->role !== UserRole::Admin)) {
+            abort(404);
+        }
+
         $book->load(['categories', 'booksFile']);
         
         // Inisialisasi variabel peminjaman aktif
@@ -243,6 +256,21 @@ class BookController extends Controller
 
         return redirect()->route('admin.books.index')
             ->with('success', 'Buku berhasil dihapus');
+    }
+
+    /**
+     * Mengubah status visibilitas buku (hide/unhide) (khusus admin).
+     */
+    public function toggleVisibility(Book $book)
+    {
+        $this->authorize('admin-only');
+
+        $book->is_hidden = !$book->is_hidden;
+        $book->save();
+
+        $message = $book->is_hidden ? 'Buku berhasil disembunyikan.' : 'Buku berhasil ditampilkan kembali.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function viewPdf(Book $book)

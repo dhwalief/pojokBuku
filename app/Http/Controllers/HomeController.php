@@ -26,9 +26,6 @@ class HomeController extends Controller
             ->take(6)
             ->get();
 
-        // =================================================================
-        // PERBAIKAN 1: Mengubah 'category' menjadi 'categories'
-        // =================================================================
         // Mengambil buku-buku terbaru (limit 8)
         $latestBooks = Book::with(['categories', 'booksFile']) // <-- FIX
             ->latest() // Menggunakan latest() lebih ringkas dari orderBy('created_at', 'desc')
@@ -56,9 +53,6 @@ class HomeController extends Controller
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
 
-        // =================================================================
-        // PERBAIKAN 2: Mengubah 'category' menjadi 'categories'
-        // =================================================================
         $query = Book::with(['categories', 'booksFile']); // <-- FIX
 
         // Terapkan filter pencarian

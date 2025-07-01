@@ -165,7 +165,7 @@
                         @endforeach
                     </div>
                     <div class="mt-6">
-                        </div>
+                    </div>
                     @else
                     <div class="text-center py-8">
                         <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,8 +256,14 @@
                         </svg>
                         Kelola Pengguna
                     </a>
+                    <a href="{{ route('admin.borrows.export.pdf') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Export Peminjaman
+                    </a>
 
-                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,7 +1,7 @@
 @extends('layouts.app')
-
+<!-- books.index -->
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-gray-900 dark:to-black">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         <!-- Header dan Judul Halaman -->

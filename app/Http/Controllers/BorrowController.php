@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Book;
 use App\Models\Borrow;
 use App\Models\User;
+use Barryvdh\DomPDF\PDF;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -142,5 +143,27 @@ class BorrowController extends Controller
         ]);
 
         return back()->with('success', 'Masa peminjaman berhasil diperpanjang hingga ' . $newDueDate->format('d M Y'));
+    }
+
+    public function exportPdf()
+    {
+        // Pastikan hanya admin yang bisa mengakses fungsi ini
+        $this->authorize('admin-only'); 
+
+        // Ambil semua data peminjaman tanpa paginasi untuk laporan
+        $borrows = Borrow::with(['user', 'book'])->latest()->get();
+
+        // Siapkan data yang akan dikirim ke view PDF
+        $data = [
+            'title' => 'Laporan Data Peminjaman Buku',
+            'date' => date('d/m/Y'),
+            'borrows' => $borrows
+        ];
+
+        // Muat view PDF dan kirimkan datanya
+        $pdf = app('dompdf.wrapper')->loadView('admin.borrows.pdf', $data);
+
+        // Unduh file PDF dengan nama file yang spesifik
+        return $pdf->download('laporan-peminjaman-' . date('Ymd') . '.pdf');
     }
 }

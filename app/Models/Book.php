@@ -10,9 +10,16 @@ class Book extends Model
     use HasFactory;
 
     protected $fillable = [
-        'books_file_id', 'category_id', 'title', 'author', 
-        'description', 'isbn', 'publisher', 'language', 
-        'year_published', 'url_cover'
+        'books_file_id',
+        'title',
+        'author',
+        'description',
+        'isbn',
+        'publisher',
+        'language',
+        'year_published',
+        'url_cover',
+        'is_hidden'
     ];
 
     /**
@@ -39,22 +46,24 @@ class Book extends Model
     // Scopes
     public function scopeAvailable($query)
     {
-        return $query->whereDoesntHave('borrows', function($q) {
+        return $query->whereDoesntHave('borrows', function ($q) {
             $q->where('status', 'Dipinjam');
         });
     }
 
     public function scopeByCategory($query, $categoryId)
     {
-        return $query->where('category_id', $categoryId);
+        return $query->whereHas('categories', function ($q) use ($categoryId) {
+            $q->where('id', $categoryId);
+        });
     }
 
     public function scopeSearch($query, $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('title', 'LIKE', "%{$search}%")
-              ->orWhere('author', 'LIKE', "%{$search}%")
-              ->orWhere('isbn', 'LIKE', "%{$search}%");
+                ->orWhere('author', 'LIKE', "%{$search}%")
+                ->orWhere('isbn', 'LIKE', "%{$search}%");
         });
     }
 
