@@ -56,7 +56,7 @@ class BookController extends Controller
         if ($request->filled('year')) {
             $query->where('year_published', $request->year);
         }
-        
+
         $user = Auth::user();
         if (Auth::guest() || (Auth::check() && $user->role !== UserRole::Admin)) {
             $query->where('is_hidden', false);
@@ -94,17 +94,17 @@ class BookController extends Controller
      * Menampilkan detail satu buku.
      */
     public function show(Book $book)
-    {   
+    {
         /** @var User $user */
         $user = Auth::user();
-        
+
         // Jika buku disembunyikan dan user bukan admin, tampilkan 404 Not Found.
         if ($book->is_hidden && (Auth::guest() || $user->role !== UserRole::Admin)) {
             abort(404);
         }
 
         $book->load(['categories', 'booksFile']);
-        
+
         // Inisialisasi variabel peminjaman aktif
         $activeBorrow = null;
 
@@ -160,7 +160,7 @@ class BookController extends Controller
             'language' => 'nullable|string|max:100',
             'year_published' => 'nullable|integer|min:1000|max:' . date('Y'),
             'url_cover' => 'nullable|url|max:255',
-            'book_file' => 'required|file|mimes:pdf|max:10240', // 10MB max tidak bisa file !pdf
+            'book_file' => 'required|file|mimes:pdf|max:30720', // 30MB max, tidak bisa file !pdf
         ]);
 
         // Handle file upload
