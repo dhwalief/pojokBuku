@@ -1,8 +1,15 @@
+# Abaikan folder git
 .git
 .gitignore
-.editorconfig
-node_modules
-vendor
-docker-compose.yml
-docker
+
+# Abaikan folder data database
+docker-compose/
+docker-compose/mysql/
+
+# Abaikan folder dependensi lokal
+vendor/
+node_modules/
+public/build/
+
+# Abaikan file environment lokal
 .env

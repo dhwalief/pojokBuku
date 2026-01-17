@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
     libgd-dev \
+    && docker-php-ext-install zip pdo pdo_mysql \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,8 +38,10 @@ COPY composer.json composer.lock ./
 RUN composer install --no-ansi --no-dev --no-interaction --no-plugins --no-progress --no-scripts --optimize-autoloader
 
 # Copy existing application directory permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www
+RUN chmod -R 775 /var/www
+
+RUN composer install
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
