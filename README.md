@@ -13,7 +13,9 @@ Before setting up the application, ensure your system meets the following requir
 - **PHP**: 8.3.3
 - **Node.js**: 22
 
-## Installation Guide
+In Docker installation you just have docker and run the fck ofgit it
+
+## Installation Guide (1)
 
 Follow these steps to configure and run the application:
 
@@ -74,4 +76,35 @@ npm run dev
 
 ```bash
 php artisan serve
+```
+
+## Installation guide (2: Docker)
+
+### 1. Build
+
+```bash
+docker compose up -d --build
+```
+
+### 2. Configure the Environment File
+
+Copy the example environment file and configure it according to your environment:
+
+```bash
+cp .env.example-docker .env
+```
+
+### 3. Build image
+
+```bash
+docker compose up -d --build
+```
+
+### 4. Migrate, Generate Hey, Install Dependecies
+
+```bash
+docker exec -it pojokbuku-app php artisan migrate
+docker exec -it pojokbuku-app php artisan key:generate
+docker exec -it pojokbuku-app npm install
+docker exec -it pojokbuku-app npm run build
 ```
