@@ -1,10 +1,9 @@
-version: '3.8'
 services:
   app:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: pojokbuku-app
+    image: dhwalief/pojokbuku-app:v0.1
     container_name: pojokbuku-app
     restart: unless-stopped
     working_dir: /var/www/
