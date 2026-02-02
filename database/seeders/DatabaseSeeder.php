@@ -19,15 +19,15 @@ class DatabaseSeeder extends Seeder
         // such as a registration form with proper validation and security measures
         User::create([
             'name' => 'Admin',
-            'email' => 'admin@localhost',
-            'password' => bcrypt('admin'),
+            'email' => 'admin@dhwlab.asia',
+            'password' => bcrypt('adminET123'),
             'role' => 'admin',
         ]);
 
         // Create a regular user
         User::create([
             'name' => 'Testing',
-            'email' => 'test@localhost',
+            'email' => 'test@dhwlab.asia',
             'password' => bcrypt('test'),
             'role' => 'user',
         ]);

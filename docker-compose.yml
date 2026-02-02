@@ -3,7 +3,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: dhwalief/pojokbuku-app:v0.1
+    image: dhwalief/pojokbuku-app:v0.21
     container_name: pojokbuku-app
     restart: unless-stopped
     working_dir: /var/www/
@@ -43,3 +43,4 @@ services:
 networks:
   pojokbuku:
     driver: bridge
+

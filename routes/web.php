@@ -10,7 +10,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public Routes
-Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('index');
 Route::get('/search', [BookController::class, 'search'])->name('books.search');
 Route::get('/category/{slug}', [HomeController::class, 'booksByCategory'])->name('books.category');
 
@@ -29,7 +29,6 @@ Route::prefix('categories')->name('categories.')->group(function () {
 
 // User-specific routes that require authentication
 Route::middleware('auth')->group(function () {
-    Route::get('/', [HomeController::class, 'index'])->name('index');
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
-    
+
     Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 

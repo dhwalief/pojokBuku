@@ -38,8 +38,8 @@ COPY composer.json composer.lock ./
 RUN composer install --no-ansi --no-dev --no-interaction --no-plugins --no-progress --no-scripts --optimize-autoloader
 
 # Copy existing application directory permissions
-RUN chown -R www-data:www-data /var/www
-RUN chmod -R 775 /var/www
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 RUN composer install
 
